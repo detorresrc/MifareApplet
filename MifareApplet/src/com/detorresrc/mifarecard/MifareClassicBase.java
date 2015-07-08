@@ -1,5 +1,8 @@
-package com.detorresrc.mifare;
+package com.detorresrc.mifarecard;
 
+import com.detorresrc.mifare.IMifareCard;
+import com.detorresrc.mifare.MifareResponseCodes;
+import com.detorresrc.mifare.MifareResponseData;
 import com.detorresrc.reader.Reader;
 import com.detorresrc.reader.ReaderTransmitResponse;
 
