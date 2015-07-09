@@ -1,11 +1,15 @@
 package com.detorresrc.mifarecard;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.detorresrc.main.Util;
 import com.detorresrc.mifare.IMifareCard;
 import com.detorresrc.mifare.MifareResponseCodes;
 import com.detorresrc.mifare.MifareResponseData;
+import com.detorresrc.mifare.SecretKeys;
 import com.detorresrc.reader.Reader;
 import com.detorresrc.reader.ReaderTransmitResponse;
 
@@ -237,6 +241,69 @@ public class MifareClassicBase implements IMifareCard{
 			for(int i=0;i<byteList.size(); i++){
 				responseData.data[i] = byteList.get(i);
 			}
+			
+			// Check Hash
+			MessageDigest md;
+			byte[] digest;
+			try {
+				
+				byte[] dataToHash;
+				int dataHashCtr=0;
+				MifareResponseData uidResponse = this.GetUID(reader);
+				if(uidResponse.ReturnCode == MifareResponseCodes.MF_SUCCESS){
+					dataToHash = new byte[ responseData.data.length + uidResponse.data.length + SecretKeys.keys.length ];
+					
+					for(int i=0; i<uidResponse.data.length; i++){
+						dataToHash[dataHashCtr] = uidResponse.data[i];
+						dataHashCtr++;
+					}
+				}else{
+					dataToHash = new byte[ responseData.data.length + SecretKeys.keys.length ];
+				}
+				
+				for(int i=0; i<SecretKeys.keys.length; i++){
+					dataToHash[dataHashCtr] = SecretKeys.keys[i];
+					dataHashCtr++;
+				}
+				
+				for(int i=0; i<responseData.data.length; i++){
+					dataToHash[dataHashCtr] = responseData.data[i];
+					dataHashCtr++;
+				}
+				
+				md = MessageDigest.getInstance("MD5");
+				digest = md.digest(dataToHash);
+				
+				// Get Hash From Hash BLock
+				ret = this.AuthBlock(
+						reader,
+						this.hashDataBLockAddress,
+						this.keyA,
+						(byte)0x60);
+				if(ret != MifareResponseCodes.MF_SUCCESS){
+					ret = this.AuthBlock(
+							reader,
+							this.hashDataBLockAddress,
+							this.defaultKeyA,
+							(byte)0x60);
+				}
+				if(ret != MifareResponseCodes.MF_SUCCESS){
+					responseData.ReturnCode = MifareResponseCodes.MF_HASH_AUTH_ERROR;
+				}else{
+					MifareResponseData hashResponseData = this.ReadBlock(reader, this.hashDataBLockAddress);
+					if(hashResponseData.ReturnCode == MifareResponseCodes.MF_SUCCESS){
+						if( Util.ArrayByteCompare(hashResponseData.data, digest) == false ){
+							responseData.ReturnCode = MifareResponseCodes.MF_READ_HASH_MISMATCH;
+						}
+						
+					}else{
+						responseData.ReturnCode = MifareResponseCodes.MF_READ_HASH_DATA_ERROR;
+					}
+				}
+				
+			} catch (NoSuchAlgorithmException e) {
+				responseData.ReturnCode = MifareResponseCodes.MF_WRITE_MD5_ERROR;
+			}
 		}
 		
 		return responseData;
@@ -251,6 +318,45 @@ public class MifareClassicBase implements IMifareCard{
 		if( data.length > this.dataSize ){
 			return MifareResponseCodes.MF_WRITE_INVALID_BUFFER_SIZE;
 		}
+		
+		MessageDigest md;
+		byte[] digest;
+		try {
+			
+			byte[] dataToHash;
+			int dataHashCtr=0;
+			MifareResponseData uidResponse = this.GetUID(reader);
+			if(uidResponse.ReturnCode == MifareResponseCodes.MF_SUCCESS){
+				dataToHash = new byte[ data.length + uidResponse.data.length + SecretKeys.keys.length ];
+				
+				for(int i=0; i<uidResponse.data.length; i++){
+					dataToHash[dataHashCtr] = uidResponse.data[i];
+					dataHashCtr++;
+				}
+			}else{
+				dataToHash = new byte[ data.length + SecretKeys.keys.length ];
+			}
+			
+			for(int i=0; i<SecretKeys.keys.length; i++){
+				dataToHash[dataHashCtr] = SecretKeys.keys[i];
+				dataHashCtr++;
+			}
+			
+			for(int i=0; i<data.length; i++){
+				dataToHash[dataHashCtr] = data[i];
+				dataHashCtr++;
+			}
+			
+			
+			md = MessageDigest.getInstance("MD5");
+			digest = md.digest(dataToHash);
+			
+			System.out.println( "DIGEST >> " + Util.bytesToHex(digest) );
+			
+		} catch (NoSuchAlgorithmException e) {
+			return MifareResponseCodes.MF_WRITE_MD5_ERROR;
+		}
+		
 		
 		byte[] dataToWrite = new byte[data.length+1];
 		for(int i=0;i<data.length; i++){
@@ -307,6 +413,31 @@ public class MifareClassicBase implements IMifareCard{
 			}
 		}//{ for( int i=0; i<this.dataBlockAddress.length; i++ ) }
 		
+		if( ret == MifareResponseCodes.MF_SUCCESS ){
+			// Auth Block
+			ret = this.AuthBlock(
+					reader,
+					this.hashDataBLockAddress, this.keyA, (byte)0x60);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				ret = this.AuthBlock(
+						reader,
+						this.hashDataBLockAddress, this.defaultKeyA, (byte)0x60);
+			}
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				return MifareResponseCodes.MF_HASH_AUTH_ERROR;
+			}
+			
+			// Write Hash
+			ret = this.WriteBlock(
+					reader,
+					this.hashDataBLockAddress,
+					digest
+			);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				return MifareResponseCodes.MF_HASH_WRITE_ERROR;
+			}
+		}
+		
 		return ret;
 	}
 	
@@ -338,6 +469,36 @@ public class MifareClassicBase implements IMifareCard{
 	@Override
 	public byte[] GetDataBlockAddress() {
 		return this.dataBlockAddress;
+	}
+
+	@Override
+	public MifareResponseData GetUID(Reader reader) {
+		byte[] buff = new byte[5];
+		buff[0]  = (byte)0xFF;
+		buff[1]  = (byte)0xCA; 
+		buff[2]  = (byte)0x00;
+		buff[3]  = (byte)0x00;
+		buff[4]  = (byte)0x00;
+		
+		MifareResponseData responseData = new MifareResponseData();
+		
+		
+		ReaderTransmitResponse response = reader.Trasmit(buff);
+		if( response.reponseCode != MifareResponseCodes.MF_SUCCESS ){
+			responseData.ReturnCode = response.reponseCode;
+			return responseData;
+		}
+		
+		if( ((byte)response.reponseAPDU.getSW1() == (byte)0x90 && (byte)response.reponseAPDU.getSW2() == (byte)0x00) ){
+			responseData.ReturnCode = MifareResponseCodes.MF_SUCCESS;
+			responseData.data = response.reponseAPDU.getData();
+		}else if( ((byte)response.reponseAPDU.getSW1() == (byte)0x63 && (byte)response.reponseAPDU.getSW2() == (byte)0x00) ){
+			responseData.ReturnCode = MifareResponseCodes.MF_READ_UID_ERROR;
+		}else if( ((byte)response.reponseAPDU.getSW1() == (byte)0x6A && (byte)response.reponseAPDU.getSW2() == (byte)0x81) ){
+			responseData.ReturnCode = MifareResponseCodes.MF_READ_UID_NOT_SUPPORTED;
+		}
+		
+		return responseData;
 	}
 
 	

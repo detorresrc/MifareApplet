@@ -25,4 +25,18 @@ public class MifareResponseCodes {
 	public final static int MF_CARD_NOT_SUPPORTED = 10010; // Inserted Card is not Supported
 	
 	public final static int MF_WRITE_INVALID_BUFFER_SIZE = 10011; // Invalid Write Buffer Size
+	
+	public final static int MF_WRITE_MD5_ERROR = 10012; // Invalid Write Buffer Size
+	
+	public final static int MF_HASH_AUTH_ERROR = 100013; // Hash - Auth Error
+	
+	public final static int MF_HASH_WRITE_ERROR = 100014; // Hash - Write Error
+	
+	public final static int MF_READ_UID_ERROR = 100015; // Read UID Error
+	
+	public final static int MF_READ_UID_NOT_SUPPORTED = 100016; // Read UID Not Supported
+	
+	public final static int MF_READ_HASH_DATA_ERROR = 100017; // Read Hash Data Error
+	
+	public final static int MF_READ_HASH_MISMATCH = 100018; // Hash Mismatch
 }

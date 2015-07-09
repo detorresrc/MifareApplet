@@ -39,11 +39,20 @@ public class Main {
 			System.out.println(e.getMessage());
 		}
 		
-		ret = card.Write(reader, "ROMMEL DE TORRES|31|BULACAN|LOUISE KAITH DE TORRES\nROMMEL DE TORRES|31|BULACAN|LOUISE KAITH DE TORRES\nROMMEL DE TORRES|31|BULACAN|LOUISE KAITH DE TORRES".getBytes());
+		ret = card.Write(reader, "ROMMEL DE TORRES|31".getBytes());
+		System.out.println("Write Ret : " + ret);
 		
 		MifareResponseData responseData = card.Read(reader);
+		System.out.println("Read Ret : " + responseData.ReturnCode);
 		
 		System.out.println( ">" + Util.bytesToChar(responseData.data) + "<" );
+		
+//		ret = card.AuthBlock(reader, (byte)0x3E, card.GetKeyA(), (byte)0x60);
+//		System.out.println("Auth Ret : " + ret);
+		
+//		MifareResponseData hashResponseData = card.ReadBlock(reader, (byte)0x3E);
+//		System.out.println("Hash Read Ret : " + hashResponseData.ReturnCode);
+//		System.out.println( "READ DIGEST >> " + Util.bytesToHex(hashResponseData.data) );
 		
 		/*
 		ret = card.AuthBlock(reader, (byte)0x01, card.GetKeyA(), (byte)0x60);

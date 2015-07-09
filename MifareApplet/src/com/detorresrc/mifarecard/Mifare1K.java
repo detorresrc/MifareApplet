@@ -5,7 +5,7 @@ public class Mifare1K extends MifareClassicBase {
 	public Mifare1K(){
 		this.dataSize = 735; // Reserved 1 byte for EndOfText
 		
-		this.hashDataBLockAddress = (byte)0xFE;
+		this.hashDataBLockAddress = (byte)0x3E;
 		
 		this.cardName = "Mifare 1K";
 		
