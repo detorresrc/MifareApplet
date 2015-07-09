@@ -19,4 +19,10 @@ public class MifareResponseCodes {
 	public final static int MF_READ_BLOCK_ERROR = 10007; // Read Block Error
 	
 	public final static int MF_WRITE_BLOCK_ERROR = 10008; // Read Block Error
+	
+	public final static int MF_NO_CARD_FOUND = 10009; // No Card Found
+	
+	public final static int MF_CARD_NOT_SUPPORTED = 10010; // Inserted Card is not Supported
+	
+	public final static int MF_WRITE_INVALID_BUFFER_SIZE = 10011; // Invalid Write Buffer Size
 }

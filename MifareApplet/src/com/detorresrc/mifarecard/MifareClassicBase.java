@@ -1,5 +1,8 @@
 package com.detorresrc.mifarecard;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.detorresrc.mifare.IMifareCard;
 import com.detorresrc.mifare.MifareResponseCodes;
 import com.detorresrc.mifare.MifareResponseData;
@@ -8,28 +11,39 @@ import com.detorresrc.reader.ReaderTransmitResponse;
 
 public class MifareClassicBase implements IMifareCard{
 	
-	protected int DATA_SIZE = 0;
+	protected int dataSize = 0;
 	
 	protected byte[] dataBlockAddress;
+	protected byte hashDataBLockAddress;
 	protected byte[] trailingBlockAddress;
 	
-	protected byte[] keyA = {
+	protected final byte[] keyA = {
 		(byte)0x05, (byte)0x20, (byte)0x84, (byte)0x84, (byte)0x20, (byte)0x05
 	};
-	protected byte[] keyB = {
+	protected final byte[] keyB = {
 		(byte)0x05, (byte)0x05, (byte)0x20, (byte)0x20, (byte)0x84, (byte)0x84
 	};
 	
-	protected byte[] defaultKeyA = {
+	protected final byte[] defaultKeyA = {
 		(byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF
 	};
-	protected byte[] defaultKeyB = {
+	protected final byte[] defaultKeyB = {
 		(byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF
 	};
 	
-	protected String protocol = "T1";
+	protected String protocol = "T=1";
+	
+	protected String cardName = "";
 	
 	protected byte numberBytesToReadAndWrite = 0x10; // 16 Bytes
+	
+	protected byte endOfText = 0x03;
+	
+	protected int bytesPerBlock = 16;
+	
+	public String getCardName(){
+		return this.cardName;
+	}
 	
 	public int AuthBlock(
 			Reader reader,
@@ -100,7 +114,7 @@ public class MifareClassicBase implements IMifareCard{
 			byte blockAddress
 	){
 		MifareResponseData mifareResponse = new MifareResponseData();
-		mifareResponse.ReturnCode = 1;
+		mifareResponse.ReturnCode = MifareResponseCodes.MF_SUCCESS;
 		
 		byte[] buffAPDURead = new byte[5];
 		buffAPDURead[0]  = (byte)0xFF;                     // Class
@@ -149,6 +163,17 @@ public class MifareClassicBase implements IMifareCard{
 		buffAPDUWrite[3]  = blockAddress;                   // P2 - BLock Address
 		buffAPDUWrite[4]  = this.numberBytesToReadAndWrite; // LC - Number of Bytes to Update
 		
+		if( data.length > this.numberBytesToReadAndWrite ){
+			return MifareResponseCodes.MF_WRITE_INVALID_BUFFER_SIZE;
+		}
+		
+		for(int i=0; i<16; i++){
+			buffAPDUWrite[5+i] = 0x00;
+		}
+		for( int i=0; i<data.length; i++ ){
+			buffAPDUWrite[5+i] = data[i];
+		}
+		
 		ReaderTransmitResponse transmitResponse = reader.Trasmit(buffAPDUWrite);
 		if( transmitResponse.reponseCode != MifareResponseCodes.MF_SUCCESS ){
 			return transmitResponse.reponseCode;
@@ -159,4 +184,161 @@ public class MifareClassicBase implements IMifareCard{
 		
 		return MifareResponseCodes.MF_SUCCESS;
 	}
+
+	@Override
+	public MifareResponseData Read(Reader reader) {
+		List<Byte> byteList = new ArrayList<Byte>();
+		
+		MifareResponseData responseData = new MifareResponseData();
+		
+		responseData.ReturnCode = MifareResponseCodes.MF_SUCCESS;
+		
+		int ret;
+		boolean breakParentLoop = false;
+		for( int i=0; i<this.dataBlockAddress.length; i++ ){
+			
+			// Auth Block
+			ret = this.AuthBlock(
+					reader,
+					this.dataBlockAddress[i], this.keyA, (byte)0x60);
+			if(ret == MifareResponseCodes.MF_AUTH_ERROR){
+				ret = this.AuthBlock(
+						reader,
+						this.dataBlockAddress[i], this.defaultKeyA, (byte)0x60);
+			}
+			if(ret == MifareResponseCodes.MF_AUTH_ERROR){
+				responseData.ReturnCode = MifareResponseCodes.MF_AUTH_ERROR;
+				break;
+			}
+			
+			// Read Block
+			MifareResponseData blockResponseData = this.ReadBlock(reader, this.dataBlockAddress[i]);
+			
+			if( blockResponseData.ReturnCode == MifareResponseCodes.MF_SUCCESS ){
+				for(int b=0; b<blockResponseData.data.length; b++){
+					if(blockResponseData.data[b]==this.endOfText){
+						breakParentLoop = true;
+						break;
+					}
+					byteList.add(blockResponseData.data[b]);
+				}
+			}else{
+				responseData.ReturnCode = blockResponseData.ReturnCode;
+				break;
+			}
+			
+			if(breakParentLoop){
+				break;
+			}
+		}//{ for( int i=0; i<this.dataBlockAddress.length; i++ ) }
+		
+		if( responseData.ReturnCode == MifareResponseCodes.MF_SUCCESS ){
+			responseData.data = new byte[ byteList.size() ];
+			for(int i=0;i<byteList.size(); i++){
+				responseData.data[i] = byteList.get(i);
+			}
+		}
+		
+		return responseData;
+	}
+	
+	public int Write(
+			Reader reader,
+			byte[] data
+	){
+		int ret = MifareResponseCodes.MF_SUCCESS;
+		
+		if( data.length > this.dataSize ){
+			return MifareResponseCodes.MF_WRITE_INVALID_BUFFER_SIZE;
+		}
+		
+		byte[] dataToWrite = new byte[data.length+1];
+		for(int i=0;i<data.length; i++){
+			dataToWrite[i] = data[i];
+		}
+		dataToWrite[data.length] = this.endOfText;
+		
+		int bBlockCtr=0;
+		boolean breakParent = false;
+		for( int i=0; i<this.dataBlockAddress.length; i++ ){
+			byte[] byteBlock = new byte[this.bytesPerBlock];
+			for(int a=0; a<this.bytesPerBlock;a++){
+				byteBlock[a] = 0x00;
+			}
+			int byteBlockCtr = 0;
+			for(int e=0; e<this.bytesPerBlock; e++){
+				if( (bBlockCtr+1) > dataToWrite.length ){
+					breakParent = true;
+					break;
+				}
+				byteBlock[e] = dataToWrite[bBlockCtr];
+				bBlockCtr++;
+				byteBlockCtr++;
+			}
+			
+			if(byteBlockCtr>0){
+				// Auth Block
+				ret = this.AuthBlock(
+						reader,
+						this.dataBlockAddress[i], this.keyA, (byte)0x60);
+				if(ret != MifareResponseCodes.MF_SUCCESS){
+					ret = this.AuthBlock(
+							reader,
+							this.dataBlockAddress[i], this.defaultKeyA, (byte)0x60);
+				}
+				if(ret != MifareResponseCodes.MF_SUCCESS){
+					return MifareResponseCodes.MF_AUTH_ERROR;
+				}
+				
+				ret = this.WriteBlock(
+						reader,
+						this.dataBlockAddress[i],
+						byteBlock
+				);
+				
+				if( ret != MifareResponseCodes.MF_SUCCESS ){
+					return ret;
+				}
+			}// { if(byteBlockCtr>0) }
+			
+
+			if(breakParent){
+				break;
+			}
+		}//{ for( int i=0; i<this.dataBlockAddress.length; i++ ) }
+		
+		return ret;
+	}
+	
+	@Override
+	public byte[] GetDefaultKeyA() {
+		return this.defaultKeyA;
+	}
+
+	@Override
+	public byte[] GetDefaultKeyB() {
+		return this.defaultKeyB;
+	}
+
+	@Override
+	public byte[] GetKeyA() {
+		return this.keyA;
+	}
+
+	@Override
+	public byte[] GetKeyB() {
+		return this.keyB;
+	}
+
+	@Override
+	public byte[] GetTrailingBlockAddress() {
+		return this.trailingBlockAddress;
+	}
+
+	@Override
+	public byte[] GetDataBlockAddress() {
+		return this.dataBlockAddress;
+	}
+
+	
 }
