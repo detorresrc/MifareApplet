@@ -1,0 +1,6 @@
+Codebase: *
+Permissions: all-permissions
+Application-Library-Allowable-Codebase: *
+Caller-Allowable-Codebase: *
+Application-Name: Mifare Applet
+Trusted-Library: true

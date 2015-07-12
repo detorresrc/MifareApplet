@@ -1,0 +1,1 @@
+jarsigner -keystore detorresrc MifareApplet.jar detorresrc

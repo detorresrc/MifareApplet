@@ -351,8 +351,6 @@ public class MifareClassicBase implements IMifareCard{
 			md = MessageDigest.getInstance("MD5");
 			digest = md.digest(dataToHash);
 			
-			System.out.println( "DIGEST >> " + Util.bytesToHex(digest) );
-			
 		} catch (NoSuchAlgorithmException e) {
 			return MifareResponseCodes.MF_WRITE_MD5_ERROR;
 		}

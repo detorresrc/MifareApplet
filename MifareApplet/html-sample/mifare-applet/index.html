@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+  <head>
+    <title>Mifare Applet Sample</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+  </head>
+  <body>
+    <noscript>A browser with JavaScript enabled is required for this page to operate properly.</noscript>
+    <script src="https://www.java.com/js/deployJava.js"></script>
+    <script src="jquery-1.11.3.min.js"></script>
+    <script src="mifare-api.js"></script>
+    <script>
+        <!-- applet id can be used to get a reference to the applet object -->
+        var attributes = { id:'myApplet', code:'com.detorresrc.main.MifareApplet', width:1, height:1} ;
+        var parameters = {jnlp_href: 'mifare-applet.jnlp'} ;
+        deployJava.runApplet(attributes, parameters, '1.6');
+
+        function write(){
+            try{
+                MifareAppletApi.write($("#txtWrite").val());    
+            }catch(e){
+                alert(e.message);
+            }
+            
+        }
+
+        function writeWait(){
+            MifareAppletApi.writeWait(
+                "writeWait_callback",
+                "15" // Timeount (in seconds)
+            );   
+        }
+
+        function writeWait_callback(ret){
+            if(parseInt(ret) == 0){
+                write();
+            }else{
+                //:TODO
+                console.log(ret);
+            }
+        }
+
+        function read(){
+            MifareAppletApi.read("txtRead");
+        }
+
+        function readWait(){
+            MifareAppletApi.readWait("readWait_callback", "15");
+        }
+
+        function readWait_callback(ret){
+            if(parseInt(ret) == 0){
+                read();
+            }else{
+                //:TODO
+                console.log(ret);
+            }
+        }
+
+        $(document).ready(function(){
+            MifareAppletApi.setApplet(myApplet);
+        });
+    </script>
+
+
+    <h1>Mifare Applet Sample</h1>
+    <p>
+        <a href="javascript:read();">Read</a>
+        <a href="javascript:readWait();">Read Wait</a>
+        : <input type="text" name="txtRead" id="txtRead" value="" style="width: 100%;"/>
+    </p>
+    <p>
+        <a href="javascript:write();">Write</a>
+        <a href="javascript:writeWait();">Write Wait</a>
+        : <input type="text" name="txtWrite" id="txtWrite" value="" style="width: 100%;"/>
+    </p>
+
+    
+  </body>
+</html>
