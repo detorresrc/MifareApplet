@@ -15,23 +15,47 @@
         var parameters = {jnlp_href: 'mifare-applet.jnlp'} ;
         deployJava.runApplet(attributes, parameters, '1.6');
 
+        function logger(msg){
+            $("#log").html( msg + "<br/>" + $("#log").html() );
+        }
+
+        function resetCardCard(){
+            try{
+                MifareAppletApi.resetCard(); 
+                logger('<strong style="color: Green;">Reset Success</strong>');
+            }catch(e){
+                logger('<strong style="color: Red;">'+e.message+'</strong>');
+            }
+        }
+
+        function initializeCard(){
+            try{
+                MifareAppletApi.initializeCard();
+                logger('<strong style="color: Green;">Initialize Success</strong>'); 
+            }catch(e){
+                logger('<strong style="color: Red;">'+e.message+'</strong>');
+            }
+        }
+
         function write(){
             try{
-                MifareAppletApi.write($("#txtWrite").val());    
+                MifareAppletApi.write($("#txtWrite").val()); 
+                logger('<strong style="color: Green;">Write Success</strong>');
             }catch(e){
-                alert(e.message);
+                logger('<strong style="color: Red;">'+e.message+'</strong>');
             }
-            
         }
 
         function writeWait(){
             MifareAppletApi.writeWait(
                 "writeWait_callback",
                 "15" // Timeount (in seconds)
-            );   
+            ); 
+            logger("Please tap NFC Card.");
         }
 
         function writeWait_callback(ret){
+            logger("Callback Return : " + ret);
             if(parseInt(ret) == 0){
                 write();
             }else{
@@ -41,14 +65,24 @@
         }
 
         function read(){
-            MifareAppletApi.read("txtRead");
+            try{
+                MifareAppletApi.read("txtRead");
+                logger('<strong style="color: Green;">Read Success</strong>');
+            }catch(e){
+                logger('<strong style="color: Red;">'+e.message+'</strong>');
+            }
         }
 
         function readWait(){
-            MifareAppletApi.readWait("readWait_callback", "15");
+            MifareAppletApi.readWait(
+                "readWait_callback",
+                "15"
+            );
+            logger("Please tap NFC Card.");
         }
 
         function readWait_callback(ret){
+            logger("Callback Return : " + ret);
             if(parseInt(ret) == 0){
                 read();
             }else{
@@ -65,6 +99,11 @@
 
     <h1>Mifare Applet Sample</h1>
     <p>
+        <a href="javascript:initializeCard();">Initialize Card</a>
+        &nbsp;&nbsp;&nbsp;
+        <a href="javascript:resetCardCard();">Reset Card</a>
+    </p>
+    <p>
         <a href="javascript:read();">Read</a>
         <a href="javascript:readWait();">Read Wait</a>
         : <input type="text" name="txtRead" id="txtRead" value="" style="width: 100%;"/>
@@ -75,6 +114,9 @@
         : <input type="text" name="txtWrite" id="txtWrite" value="" style="width: 100%;"/>
     </p>
 
+    Log : 
+    <div id="log" style="width: 100%; border: 1px solid #c2c2c2;">
+    </div>
     
   </body>
 </html>

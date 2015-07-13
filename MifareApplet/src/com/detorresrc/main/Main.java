@@ -39,13 +39,23 @@ public class Main {
 			System.out.println(e.getMessage());
 		}
 		
-		ret = card.Write(reader, "ROMMEL DE TORRES|31".getBytes());
-		System.out.println("Write Ret : " + ret);
+//		MifareResponseData responseDataBlocks = card.ReadTrailingBlocks(reader);
+//		if(responseDataBlocks.ReturnCode == MifareResponseCodes.MF_SUCCESS){
+//			System.out.println( Util.bytesToHex(responseDataBlocks.data) );
+//		}
 		
-		MifareResponseData responseData = card.Read(reader);
-		System.out.println("Read Ret : " + responseData.ReturnCode);
 		
-		System.out.println( ">" + Util.bytesToChar(responseData.data) + "<" );
+		System.out.println("Ret : " + card.ResetCard(reader));
+		
+//		System.out.println("Ret : " + card.Initialize(reader));
+		
+//		ret = card.Write(reader, "ROMMEL DE TORRES|31".getBytes());
+//		System.out.println("Write Ret : " + ret);
+//		
+//		MifareResponseData responseData = card.Read(reader);
+//		System.out.println("Read Ret : " + responseData.ReturnCode);
+//		
+//		System.out.println( ">" + Util.bytesToChar(responseData.data) + "<" );
 		
 //		ret = card.AuthBlock(reader, (byte)0x3E, card.GetKeyA(), (byte)0x60);
 //		System.out.println("Auth Ret : " + ret);

@@ -189,6 +189,173 @@ public class MifareClassicBase implements IMifareCard{
 		return MifareResponseCodes.MF_SUCCESS;
 	}
 
+	public MifareResponseData ReadDataBlocks(Reader reader){
+		MifareResponseData responseData = new MifareResponseData();
+		responseData.ReturnCode = MifareResponseCodes.MF_SUCCESS;
+		responseData.data = new byte[ (this.dataBlockAddress.length*16) ];
+		
+		int byteCtr = 0;
+		int ret;
+		
+		for(int i=0; i<this.dataBlockAddress.length; i++){
+			ret = this.AuthBlock(
+					reader,
+					this.dataBlockAddress[i], this.keyA, (byte)0x60);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				ret = this.AuthBlock(
+						reader,
+						this.dataBlockAddress[i], this.defaultKeyA, (byte)0x60);
+			}
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				responseData.ReturnCode = MifareResponseCodes.MF_AUTH_ERROR;
+				break;
+			}
+			
+			MifareResponseData responseBlock = this.ReadBlock(reader, this.dataBlockAddress[i]);
+			if( responseBlock.ReturnCode != MifareResponseCodes.MF_SUCCESS){
+				responseData.ReturnCode = responseBlock.ReturnCode;
+				break;
+			}
+			
+			for(int ii=0; ii<responseBlock.data.length; ii++){
+				responseData.data[byteCtr] = responseBlock.data[ii];
+				byteCtr++;
+			}
+		}
+		
+		return responseData;
+	}
+	
+	@Override
+	public MifareResponseData ReadTrailingBlocks(Reader reader){
+		MifareResponseData responseData = new MifareResponseData();
+		responseData.ReturnCode = MifareResponseCodes.MF_SUCCESS;
+		responseData.data = new byte[ (this.trailingBlockAddress.length*16) ];
+		
+		int byteCtr = 0;
+		int ret;
+		
+		for(int i=0; i<this.trailingBlockAddress.length; i++){
+			ret = this.AuthBlock(
+					reader,
+					this.trailingBlockAddress[i], this.keyA, (byte)0x60);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				ret = this.AuthBlock(
+						reader,
+						this.trailingBlockAddress[i], this.defaultKeyA, (byte)0x60);
+			}
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				responseData.ReturnCode = MifareResponseCodes.MF_AUTH_ERROR;
+				break;
+			}
+			
+			MifareResponseData responseBlock = this.ReadBlock(reader, this.trailingBlockAddress[i]);
+			if( responseBlock.ReturnCode != MifareResponseCodes.MF_SUCCESS){
+				responseData.ReturnCode = responseBlock.ReturnCode;
+				break;
+			}
+			
+			for(int ii=0; ii<responseBlock.data.length; ii++){
+				responseData.data[byteCtr] = responseBlock.data[ii];
+				byteCtr++;
+			}
+		}
+		
+		return responseData;
+	}
+	
+	public int ResetCard(Reader reader){
+		int ret=MifareResponseCodes.MF_SUCCESS;
+		
+		for(int i=0; i<this.trailingBlockAddress.length; i++){
+			ret = this.AuthBlock(
+					reader,
+					this.trailingBlockAddress[i], this.keyA, (byte)0x60);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				ret = this.AuthBlock(
+						reader,
+						this.trailingBlockAddress[i], this.defaultKeyA, (byte)0x60);
+				
+				if(ret != MifareResponseCodes.MF_SUCCESS){
+					return MifareResponseCodes.MF_AUTH_ERROR;
+				}
+			}
+			
+			MifareResponseData responseBlock = this.ReadBlock(reader, this.trailingBlockAddress[i]);
+			if( responseBlock.ReturnCode != MifareResponseCodes.MF_SUCCESS ){
+				return MifareResponseCodes.MF_READ_BLOCK_ERROR;
+			}
+			byte[] bData = new byte[responseBlock.data.length];
+			bData = responseBlock.data.clone();
+			
+			bData[0] = this.defaultKeyA[0];
+			bData[1] = this.defaultKeyA[1];
+			bData[2] = this.defaultKeyA[2];
+			bData[3] = this.defaultKeyA[3];
+			bData[4] = this.defaultKeyA[4];
+			bData[5] = this.defaultKeyA[5];
+			
+			bData[10] = this.defaultKeyB[0];
+			bData[11] = this.defaultKeyB[1];
+			bData[12] = this.defaultKeyB[2];
+			bData[13] = this.defaultKeyB[3];
+			bData[14] = this.defaultKeyB[4];
+			bData[15] = this.defaultKeyB[5];
+			
+			ret = this.WriteBlock(reader, this.trailingBlockAddress[i], bData);
+			if( ret != MifareResponseCodes.MF_SUCCESS ){
+				return MifareResponseCodes.MF_WRITE_BLOCK_ERROR;
+			}
+		}
+		
+		ret = this.Write(reader, "- DEFAULT CARD -".getBytes());
+		
+		return ret;
+	}
+	
+	public int Initialize(Reader reader){
+		int ret=MifareResponseCodes.MF_SUCCESS;
+		
+		for(int i=0; i<this.trailingBlockAddress.length; i++){
+			ret = this.AuthBlock(
+					reader,
+					this.trailingBlockAddress[i], this.defaultKeyA, (byte)0x60);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				return MifareResponseCodes.MF_AUTH_ERROR;
+			}
+			
+			MifareResponseData responseBlock = this.ReadBlock(reader, this.trailingBlockAddress[i]);
+			if( responseBlock.ReturnCode != MifareResponseCodes.MF_SUCCESS ){
+				return MifareResponseCodes.MF_READ_BLOCK_ERROR;
+			}
+			byte[] bData = new byte[responseBlock.data.length];
+			bData = responseBlock.data.clone();
+			
+			bData[0] = this.keyA[0];
+			bData[1] = this.keyA[1];
+			bData[2] = this.keyA[2];
+			bData[3] = this.keyA[3];
+			bData[4] = this.keyA[4];
+			bData[5] = this.keyA[5];
+			
+			bData[10] = this.keyB[0];
+			bData[11] = this.keyB[1];
+			bData[12] = this.keyB[2];
+			bData[13] = this.keyB[3];
+			bData[14] = this.keyB[4];
+			bData[15] = this.keyB[5];
+			
+			ret = this.WriteBlock(reader, this.trailingBlockAddress[i], bData);
+			if( ret != MifareResponseCodes.MF_SUCCESS ){
+				return MifareResponseCodes.MF_WRITE_BLOCK_ERROR;
+			}
+		}
+		
+		ret = this.Write(reader, "-NEW CARD-".getBytes());
+		
+		return ret;
+	}
+	
 	@Override
 	public MifareResponseData Read(Reader reader) {
 		List<Byte> byteList = new ArrayList<Byte>();

@@ -26,6 +26,98 @@ public class MifareApplet extends Applet {
 	 */
 	private static final long serialVersionUID = 104094314808253039L;
 
+	public String ResetCard(){
+		String dataRet = null;
+		try {
+			dataRet = (String) AccessController.doPrivileged(
+			  new PrivilegedExceptionAction<String>() {
+			    public String run() {
+			    	
+			    	Reader reader = new Reader();
+					
+					int ret;
+					
+					ret = reader.ConnectToReader();
+					
+					if( ret != MifareResponseCodes.MF_SUCCESS ){
+						return "" + ret;
+					}
+					
+					ret = reader.ConnectToCard("T=1");
+					if( ret != MifareResponseCodes.MF_SUCCESS ){
+						return "" + ret;
+					}
+					
+					IMifareCard card = null;
+					try {
+						card = reader.GetCard();
+						
+						ret = card.ResetCard(reader);
+						
+						if( ret != MifareResponseCodes.MF_SUCCESS ){
+							return "" + ret;
+						}
+						
+					} catch (CardNotSupportedException e) {
+						return "" + MifareResponseCodes.MF_CARD_NOT_SUPPORTED;
+					}
+					return "" + MifareResponseCodes.MF_SUCCESS;
+			    }
+			  }
+			);
+		} catch (PrivilegedActionException e) {
+			dataRet = "999";
+		}
+		
+		return dataRet;
+	}
+	
+	public String InitilizeCard(){
+		String dataRet = null;
+		try {
+			dataRet = (String) AccessController.doPrivileged(
+			  new PrivilegedExceptionAction<String>() {
+			    public String run() {
+			    	
+			    	Reader reader = new Reader();
+					
+					int ret;
+					
+					ret = reader.ConnectToReader();
+					
+					if( ret != MifareResponseCodes.MF_SUCCESS ){
+						return "" + ret;
+					}
+					
+					ret = reader.ConnectToCard("T=1");
+					if( ret != MifareResponseCodes.MF_SUCCESS ){
+						return "" + ret;
+					}
+					
+					IMifareCard card = null;
+					try {
+						card = reader.GetCard();
+						
+						ret = card.Initialize(reader);
+						
+						if( ret != MifareResponseCodes.MF_SUCCESS ){
+							return "" + ret;
+						}
+						
+					} catch (CardNotSupportedException e) {
+						return "" + MifareResponseCodes.MF_CARD_NOT_SUPPORTED;
+					}
+					return "" + MifareResponseCodes.MF_SUCCESS;
+			    }
+			  }
+			);
+		} catch (PrivilegedActionException e) {
+			dataRet = "999";
+		}
+		
+		return dataRet;
+	}
+	
 	public String WriteCard(String dataToWrite){
 		String dataRet = null;
 		try {

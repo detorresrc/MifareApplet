@@ -6,3 +6,4 @@ Application-Library-Allowable-Codebase: *
 Caller-Allowable-Codebase: *
 Application-Name: Mifare Applet
 Trusted-Library: true
+Main-Class: com.detorresrc.main.Main

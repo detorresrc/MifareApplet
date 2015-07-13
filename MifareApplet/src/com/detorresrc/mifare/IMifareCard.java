@@ -37,4 +37,9 @@ public interface IMifareCard {
 	public int Write(Reader reader, byte[] data);
 	
 	public MifareResponseData GetUID(Reader reader);
+	
+	public MifareResponseData ReadDataBlocks(Reader reader);
+	public MifareResponseData ReadTrailingBlocks(Reader reader);
+	public int ResetCard(Reader reader);
+	public int Initialize(Reader reader);
 }

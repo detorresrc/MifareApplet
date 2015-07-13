@@ -67,6 +67,28 @@ MifareAppletApi = function(){
             applet = app;
         },
 
+        resetCard : function(){
+            console.log("MifareAppletApi::resetCard()");
+
+            var ret = applet.ResetCard();
+            console.log(ret);
+            if( ret != MifareErrorCodes.MF_SUCCESS ){
+                exc = new MifareException(ret);
+                throw exc;
+            }
+        },
+
+        initializeCard : function(){
+            console.log("MifareAppletApi::initializeCard()");
+
+            var ret = applet.InitilizeCard();
+            console.log(ret);
+            if( ret != MifareErrorCodes.MF_SUCCESS ){
+                exc = new MifareException(ret);
+                throw exc;
+            }
+        },
+
         read : function(elementId){
             console.log("MifareAppletApi::read()");
 
@@ -74,7 +96,7 @@ MifareAppletApi = function(){
             if( ret.code == MifareErrorCodes.MF_SUCCESS ){
                 $("#" + elementId).val( ret.data );
             }else{
-                exc = new MifareException(ret);
+                exc = new MifareException(ret.code);
                 throw exc;
             }
         },
