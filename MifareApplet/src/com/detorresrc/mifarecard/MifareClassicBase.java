@@ -308,7 +308,31 @@ public class MifareClassicBase implements IMifareCard{
 			}
 		}
 		
-		ret = this.Write(reader, "- DEFAULT CARD -".getBytes());
+		ret = this.ResetDataBlocks(reader);
+		
+		return ret;
+	}
+	
+	private int ResetDataBlocks(Reader reader){
+		int ret=MifareResponseCodes.MF_SUCCESS;
+		
+		for(int i=0; i<this.dataBlockAddress.length; i++){
+			ret = this.AuthBlock(
+					reader,
+					this.dataBlockAddress[i], this.defaultKeyA, (byte)0x60);
+			if(ret != MifareResponseCodes.MF_SUCCESS){
+				return ret;
+			}
+			
+			byte[] data = new byte[16];
+			for(int ii=0; ii<16; ii++){
+				data[ii] = (byte)0x00;
+			}
+			ret = this.WriteBlock(reader, this.dataBlockAddress[i], data);
+			if( ret != MifareResponseCodes.MF_SUCCESS ){
+				return ret;
+			}
+		}
 		
 		return ret;
 	}
@@ -372,11 +396,13 @@ public class MifareClassicBase implements IMifareCard{
 			ret = this.AuthBlock(
 					reader,
 					this.dataBlockAddress[i], this.keyA, (byte)0x60);
-			if(ret == MifareResponseCodes.MF_AUTH_ERROR){
+			/*
+			 if(ret == MifareResponseCodes.MF_AUTH_ERROR){
 				ret = this.AuthBlock(
 						reader,
 						this.dataBlockAddress[i], this.defaultKeyA, (byte)0x60);
 			}
+			*/
 			if(ret == MifareResponseCodes.MF_AUTH_ERROR){
 				responseData.ReturnCode = MifareResponseCodes.MF_AUTH_ERROR;
 				break;
@@ -552,11 +578,13 @@ public class MifareClassicBase implements IMifareCard{
 				ret = this.AuthBlock(
 						reader,
 						this.dataBlockAddress[i], this.keyA, (byte)0x60);
+				/*
 				if(ret != MifareResponseCodes.MF_SUCCESS){
 					ret = this.AuthBlock(
 							reader,
 							this.dataBlockAddress[i], this.defaultKeyA, (byte)0x60);
-				}
+				} 
+				 */
 				if(ret != MifareResponseCodes.MF_SUCCESS){
 					return MifareResponseCodes.MF_AUTH_ERROR;
 				}

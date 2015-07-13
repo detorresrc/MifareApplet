@@ -19,7 +19,8 @@
             $("#log").html( msg + "<br/>" + $("#log").html() );
         }
 
-        function resetCardCard(){
+        function resetCard(){
+        	logger("Please wait...");
             try{
                 MifareAppletApi.resetCard(); 
                 logger('<strong style="color: Green;">Reset Success</strong>');
@@ -101,7 +102,7 @@
     <p>
         <a href="javascript:initializeCard();">Initialize Card</a>
         &nbsp;&nbsp;&nbsp;
-        <a href="javascript:resetCardCard();">Reset Card</a>
+        <a href="javascript:resetCard();">Reset Card</a>
     </p>
     <p>
         <a href="javascript:read();">Read</a>

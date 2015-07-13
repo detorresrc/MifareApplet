@@ -39,10 +39,10 @@ public class Main {
 			System.out.println(e.getMessage());
 		}
 		
-//		MifareResponseData responseDataBlocks = card.ReadTrailingBlocks(reader);
-//		if(responseDataBlocks.ReturnCode == MifareResponseCodes.MF_SUCCESS){
-//			System.out.println( Util.bytesToHex(responseDataBlocks.data) );
-//		}
+		MifareResponseData responseDataBlocks = card.ReadTrailingBlocks(reader);
+		if(responseDataBlocks.ReturnCode == MifareResponseCodes.MF_SUCCESS){
+			System.out.println( Util.bytesToHex(responseDataBlocks.data) );
+		}
 		
 		
 		System.out.println("Ret : " + card.ResetCard(reader));
